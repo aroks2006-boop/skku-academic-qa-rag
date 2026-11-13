@@ -44,7 +44,13 @@ if not pool:
     st.success("모든 문항 검수 완료")
     st.stop()
 
-labels = [f"{q['id']} {'✅' if q.get('verified') else '⬜'} {q['question'][:30]}" for q in pool]
+def mark(q: dict) -> str:
+    if q.get("verified"):
+        return "✅"
+    return "⚠️" if q.get("review_note", "").startswith("⚠") else "⬜"
+
+
+labels = [f"{q['id']} {mark(q)} {q['question'][:30]}" for q in pool]
 picked = st.sidebar.radio("문항", range(len(pool)), format_func=lambda i: labels[i])
 q = pool[picked]
 
@@ -53,6 +59,11 @@ with left:
     st.subheader(f"{q['id']} · {q['category']}")
     st.markdown(f"**질문** {q['question']}")
     st.caption(f"출처: {q['source']}")
+    note = q.get("review_note", "")
+    if note.startswith("⚠"):
+        st.warning(note)
+    elif note:
+        st.info(note)
     gold = st.text_area("정답 (원본과 다르면 고치기)", q["gold"], height=160)
     keywords = st.text_input("필수 키워드 (쉼표 구분)", ", ".join(q.get("keywords", [])))
     keep, drop = st.columns(2)
