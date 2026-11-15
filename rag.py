@@ -136,9 +136,9 @@ def format_context(hits: list[dict]) -> str:
     return "\n\n".join(f"[{i}] ({h['source']} p.{h['page']})\n{h['text']}" for i, h in enumerate(hits, 1))
 
 
-def chat(system: str, user: str) -> str:
+def chat(system: str, user: str, model: str | None = None) -> str:
     res = client().chat.completions.create(
-        model=CHAT_MODEL,
+        model=model or CHAT_MODEL,
         temperature=0,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
     )

@@ -9,6 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from config import JUDGE_MODEL
 from rag import answer, answer_plain, chat
 
 EVAL_DIR = Path(__file__).parent
@@ -75,7 +76,7 @@ def judge(q: dict, text: str) -> dict:
         f"[질문]\n{q['question']}\n\n[정답]\n{q['gold']}\n\n"
         f"[필수 키워드]\n{', '.join(q.get('keywords', []))}\n\n[답변]\n{text}"
     )
-    raw = chat(JUDGE_SYSTEM, prompt)
+    raw = chat(JUDGE_SYSTEM, prompt, JUDGE_MODEL)
     start, end = raw.find("{"), raw.rfind("}") + 1
     result = json.loads(raw[start:end])
     if result.get("verdict") not in SCORES:

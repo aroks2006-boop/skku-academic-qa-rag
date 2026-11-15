@@ -12,6 +12,7 @@ CHROMA_DIR = ROOT / "chroma"
 COLLECTION = "skku_academic"
 
 CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4.1-mini")
+JUDGE_MODEL = os.getenv("OPENAI_JUDGE_MODEL", "gpt-4.1-mini")
 EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
 OCR_MODEL = os.getenv("OPENAI_OCR_MODEL", "gpt-5-mini")
 

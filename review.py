@@ -7,7 +7,8 @@ import streamlit as st
 
 from config import RAW_DIR
 
-QUESTIONS = Path(__file__).parent / "eval" / "questions.jsonl"
+EVAL_DIR = Path(__file__).parent / "eval"
+SETS = {"새 문항 (heldout)": EVAL_DIR / "heldout.jsonl", "기존 정답셋": EVAL_DIR / "questions.jsonl"}
 
 
 def load() -> list[dict]:
@@ -35,6 +36,7 @@ def render(name: str, page: int) -> bytes:
 
 
 st.set_page_config(page_title="정답셋 검수", layout="wide")
+QUESTIONS = SETS[st.sidebar.selectbox("정답셋", list(SETS))]
 questions = load()
 done = sum(q.get("verified") is True for q in questions)
 st.sidebar.progress(done / len(questions), text=f"검수 완료 {done}/{len(questions)}")

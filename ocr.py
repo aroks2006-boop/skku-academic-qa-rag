@@ -53,10 +53,11 @@ def render_parts(pdf: Path, page_no: int, parts: int = SPLIT_PARTS) -> list[byte
 
 def transcribe(client: OpenAI, png: bytes) -> str:
     url = "data:image/png;base64," + base64.b64encode(png).decode()
-    sampling = {} if OCR_MODEL.startswith(("gpt-5", "o")) else {"temperature": 0}
+    reasoning = OCR_MODEL.startswith(("gpt-5", "o"))
+    sampling = {} if reasoning else {"temperature": 0}
     res = client.chat.completions.create(
         model=OCR_MODEL,
-        max_completion_tokens=MAX_TOKENS,
+        max_completion_tokens=MAX_TOKENS if reasoning else min(MAX_TOKENS, 16000),
         **sampling,
         messages=[{
             "role": "user",

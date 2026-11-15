@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import re
 from pathlib import Path
@@ -110,28 +111,30 @@ def linearize(header: list[str], row: str) -> str:
     return "\n".join([f"- {pairs[0]}"] + [f"  · {p}" for p in pairs[1:]])
 
 
-def table_units(lines: list[str], size: int) -> list[str]:
+def table_units(lines: list[str], size: int, tables: str = "linear") -> list[str]:
     has_header = len(lines) > 1 and is_separator(lines[1])
     header = cells(lines[0]) if has_header else []
     body = [r for r in lines[(2 if has_header else 0):] if not is_separator(r)]
-    rows = [r for r in (linearize(header, b) for b in body) if r] if has_header else body
-    if has_header and not rows:
-        rows = ["- " + " | ".join(h for h in header if h)]
+    prefix = lines[:2] if has_header and tables == "markdown" else []
+    if tables == "linear" and has_header:
+        rows = [r for r in (linearize(header, b) for b in body) if r] or ["- " + " | ".join(h for h in header if h)]
+    else:
+        rows = body
     units, group = [], []
     for row in rows:
-        if group and len("\n".join(group + [row])) > size:
-            units.append("\n".join(group))
+        if group and len("\n".join(prefix + group + [row])) > size:
+            units.append("\n".join(prefix + group))
             group = []
         group.append(row)
-    if group:
-        units.append("\n".join(group))
+    if group or not rows:
+        units.append("\n".join(prefix + group))
     return units
 
 
-def page_chunks(text: str, state: dict, size: int = CHUNK_SIZE) -> list[tuple[str, str]]:
+def page_chunks(text: str, state: dict, size: int = CHUNK_SIZE, tables: str = "linear") -> list[tuple[str, str]]:
     units = []
     for kind, title, lines in blocks(text, state):
-        body = table_units(lines, size) if kind == "table" else split("\n".join(lines), size)
+        body = table_units(lines, size, tables) if kind == "table" else split("\n".join(lines), size)
         units.extend((title, u) for u in body)
 
     chunks, cur_title, cur = [], None, []
@@ -151,13 +154,13 @@ def context_header(path: Path, page: int, chapter: str, title: str) -> str:
     return f"[{path.stem} p.{page}] " + " > ".join(parts)
 
 
-def build_chunks(raw_dir: Path) -> list[dict]:
+def build_chunks(raw_dir: Path, tables: str = "linear") -> list[dict]:
     files = sorted(p for p in raw_dir.rglob("*") if p.suffix.lower() in {".pdf", ".txt", ".md"})
     chunks = []
     for path in files:
         state = {"chapter": "", "title": "", "table": ""}
         for page, text in load_pages(path):
-            for n, (title, body) in enumerate(page_chunks(text, state)):
+            for n, (title, body) in enumerate(page_chunks(text, state, tables=tables)):
                 uid = hashlib.md5(f"{path.name}:{page}:{n}".encode()).hexdigest()
                 text_with_header = f"{context_header(path, page, state['chapter'], title)}\n{body}"
                 chunks.append({"id": uid, "text": text_with_header, "source": path.name, "page": page})
@@ -173,15 +176,20 @@ def embed(client: OpenAI, texts: list[str]) -> list[list[float]]:
 
 
 def main() -> None:
-    chunks = build_chunks(RAW_DIR)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tables", choices=["linear", "markdown"], default="linear")
+    parser.add_argument("--collection", default=COLLECTION)
+    args = parser.parse_args()
+
+    chunks = build_chunks(RAW_DIR, args.tables)
     if not chunks:
         print(f"{RAW_DIR} 에 PDF/TXT/MD 문서를 넣어주세요.")
         return
 
     db = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    if COLLECTION in [c.name for c in db.list_collections()]:
-        db.delete_collection(COLLECTION)
-    col = db.create_collection(COLLECTION, metadata={"hnsw:space": "cosine"})
+    if args.collection in [c.name for c in db.list_collections()]:
+        db.delete_collection(args.collection)
+    col = db.create_collection(args.collection, metadata={"hnsw:space": "cosine"})
 
     texts = [c["text"] for c in chunks]
     col.add(
