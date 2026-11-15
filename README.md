@@ -77,17 +77,24 @@ Claude Code(AI 코딩 도구)로 구현했다. 문제 정의와 비교 대상(�
 - 셔틀버스·식단표·기숙사 일정처럼 학교 홈페이지에만 있는 정보는 답하지 않는다(근거없음 문항). OpenAI 웹 검색으로 시험해 보니 관련 페이지는 찾지만, 셔틀 질문에 캠퍼스 간 셔틀 대신 혜화역 셔틀 정보를 답하거나 2023년 페이지를 근거로 쓰는 등 정확도가 낮았다
 - 표 처리·프롬프트 개선은 같은 정답셋의 오답을 보며 진행했으므로 수치가 다소 낙관적일 수 있다
 
-## 설치
+## 실행 방법 (Windows)
+
+필요한 것: Python 3.11 이상, OpenAI API 키, 학교 문서 PDF(저작권 문제로 저장소에 없음)
+
+1. 학교 홈페이지에서 「2026 학사제도 안내」, 학칙, 학칙시행세칙 PDF를 받아 `data/raw/`에 넣기
+2. **`setup.bat` 더블클릭** (최초 1회): 패키지 설치 → `.env`에 API 키 입력 → 문서 인덱싱(스캔본 OCR 포함 20~40분, 약 $3)
+3. **`run.bat` 더블클릭**: 앱이 뜨고 브라우저가 자동으로 열림. 끝내려면 검은 창을 닫기
+
+바탕화면에서 바로 열려면 `run.bat` 우클릭 → 바로 가기 만들기 → 바로 가기를 바탕화면으로 옮기기
+
+명령어로 실행하려면:
 ```
 pip install -r requirements.txt
 copy .env.example .env
+python ingest.py
+streamlit run app.py
 ```
-`.env`에 `OPENAI_API_KEY` 입력 후 `python check_api.py`로 연결 확인
-
-## 사용
-1. `data/raw/`에 학사 요람, 졸업요건, 학칙 PDF 등을 넣기
-2. `python ingest.py` 로 인덱싱 (문서를 바꾸면 다시 실행)
-3. `streamlit run app.py` 로 UI 실행, 또는 `python rag.py "질문"`
+`python check_api.py`로 API 키 연결 확인, `python rag.py "질문"`으로 터미널에서 바로 질문 가능
 
 ## 구조
 - `ocr.py`: 텍스트 없는 스캔 페이지만 gpt-5-mini로 OCR, 결과는 `data/ocr/`에 페이지별 캐시. 출력 과다·판독 거부 시 페이지를 3분할해 재시도
