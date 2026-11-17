@@ -1,5 +1,5 @@
-pymupdf
-chromadb
-openai
-streamlit
-python-dotenv
+pymupdf==2.1
+chromadb==1.5.9
+openai==3.52.0
+streamlit==1.67.0
+python-dotenv==1.2.4
